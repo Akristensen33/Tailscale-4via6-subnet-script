@@ -1,1 +1,1 @@
-# Tailscale-4via6-subnet-script
+This script is designed to automate the configuration of a network route using the Tailscale VPN service. It prompts the user to input an ID number, retrieves the device's IP address, and then modifies it to form a route. The script then uses the Tailscale CLI tool to perform a debug operation with the provided ID number and modified IP address. Finally, it announces the route using the extracted information.
