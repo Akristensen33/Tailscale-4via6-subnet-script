@@ -1,34 +1,38 @@
 #!/bin/bash
 
-
-# Få den første IP-adresse tildelt til denne enhed.
+# Get the first IP address assigned to this device.
 ip_address=$(hostname -I | awk '{print $1}')
 
-# Kontroller om en IP-adresse blev fundet.
+# Check if an IP address was found.
 if [[ -z "$ip_address" ]]; then
-  echo "Ingen IP-adresse fundet."
+  echo "No IP address found."
   exit 1
 fi
 
-echo "Original IP-adresse: $ip_address"
+echo "Original IP address: $ip_address"
 
-# Opdel IP-adressen ved punktummer og ændre det sidste tal til 0.
+# Split the IP address at dots and change the last number to 0.
 IFS='.' read -r -a ip_parts <<< "$ip_address"
 ip_parts[3]=0
 modified_ip_address="${ip_parts[0]}.${ip_parts[1]}.${ip_parts[2]}.0"
 
-echo "Ændret IP-adresse: $modified_ip_address"
+echo "Modified IP address: $modified_ip_address"
 
-# Få ID-nummeret fra brugeren.
-id_num=$(get_id)
+# Get the ID number from the user.
+get_id() {
+  read -p "Please enter the ID number: " id_num
+  echo $id_num
+}
 
-# Eksekverer tailscale debug-kommando med ID-nummeret og ændret IP-adresse.
+# Execute tailscale debug command with the ID number and modified IP address.
 debug_output=$(tailscale debug "$id_num" "$modified_ip_address"/24)
 echo "Debug output: $debug_output"
-# Antager at debug_output indeholder den nødvendige adresse direkte.
+# Assume that debug_output contains the necessary address directly.
 route=$debug_output
 
-echo "Annoncerer rute: $route"
+echo "Announcing route: $route"
 
-# Brug den ekstraherede rute i tailscale up-kommandoen.
+# Use the extracted route in the tailscale up command.
 tailscale up --advertise-routes="$route"
+
+#done.
