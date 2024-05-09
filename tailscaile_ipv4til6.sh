@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Function to get the ID number from the user.
+get_id() {
+  read -p "Please enter the ID number: " id_num
+  echo $id_num
+}
+
 # Get the first IP address assigned to this device.
 ip_address=$(hostname -I | awk '{print $1}')
 
@@ -13,26 +19,27 @@ echo "Original IP address: $ip_address"
 
 # Split the IP address at dots and change the last number to 0.
 IFS='.' read -r -a ip_parts <<< "$ip_address"
+old_ifs=$IFS  # Save old IFS
+IFS='.'       # Set IFS to dot for joining parts
 ip_parts[3]=0
 modified_ip_address="${ip_parts[0]}.${ip_parts[1]}.${ip_parts[2]}.0"
+IFS=$old_ifs  # Restore original IFS
 
 echo "Modified IP address: $modified_ip_address"
 
-# Get the ID number from the user.
-get_id() {
-  read -p "Please enter the ID number: " id_num
-  echo $id_num
-}
+# Get ID number and execute tailscale debug command to generate IPv6 subnet route.
+id_num=$(get_id)  # Call function to get ID number
+if ! ipv6_route=$(tailscale debug via "$id_num" "$modified_ip_address"/24); then
+  echo "Failed to generate IPv6 route."
+  exit 1
+fi
 
-# Execute tailscale debug command with the ID number and modified IP address.
-debug_output=$(tailscale debug "$id_num" "$modified_ip_address"/24)
-echo "Debug output: $debug_output"
-# Assume that debug_output contains the necessary address directly.
-route=$debug_output
+echo "IPv6 Subnet Route: $ipv6_route"
 
-echo "Announcing route: $route"
+# Use the generated IPv6 route in the tailscale up command.
+if ! tailscale up --advertise-routes="$ipv6_route"; then
+  echo "Failed to advertise routes."
+  exit 1
+fi
 
-# Use the extracted route in the tailscale up command.
-tailscale up --advertise-routes="$route"
-
-#done.
+echo "Configuration complete."
